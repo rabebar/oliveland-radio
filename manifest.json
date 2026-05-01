@@ -2,7 +2,7 @@
   "name": "Olive Land Radio",
   "short_name": "Olive Land",
   "description": "Palestine & Jordan Radio — One Land, Many Voices",
-  "start_url": "/",
+  "start_url": "/mobile.html",
   "display": "standalone",
   "background_color": "#F5F0E6",
   "theme_color": "#4A5C28",
