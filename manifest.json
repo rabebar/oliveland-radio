@@ -1,0 +1,22 @@
+{
+  "name": "Olive Land Radio",
+  "short_name": "Olive Land",
+  "description": "Palestine & Jordan Radio — One Land, Many Voices",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F0E6",
+  "theme_color": "#4A5C28",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

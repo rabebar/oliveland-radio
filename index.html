@@ -321,6 +321,8 @@ footer{
 .wb:nth-child(5){animation-delay:0.4s;}
 @keyframes wv{0%,100%{height:3px;}50%{height:12px;}}
 </style>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#4A5C28">
 </head>
 <body>
 
@@ -573,6 +575,11 @@ function reqSpeak() {
   el.textContent = 'Request sent to host ✓';
   setTimeout(() => el.textContent = '', 3000);
 }
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
 </script>
 </body>
 </html>
