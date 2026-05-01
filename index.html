@@ -513,19 +513,48 @@ footer{
   </div>
 </footer>
 
+<audio id="radio-player" src="https://stream.zeno.fm/xun1xkhjxmlvv" preload="none"></audio>
+
 <script>
-let playing = false;
+const player = document.getElementById('radio-player');
 
 function togglePlay() {
-  playing = !playing;
-  document.getElementById('nav-btn').classList.toggle('playing', playing);
-  document.getElementById('main-btn').classList.toggle('playing', playing);
-  document.getElementById('nav-icon').textContent = playing ? '⏸' : '▶';
-  document.getElementById('nav-text').textContent = playing ? 'Pause' : 'Listen Live';
-  document.getElementById('main-icon').textContent = playing ? '⏸' : '▶';
-  document.getElementById('main-text').textContent = playing ? 'On Air' : 'Listen Live';
-  document.getElementById('np-wave').classList.toggle('on', playing);
+  if (player.paused) {
+    player.src = 'https://stream.zeno.fm/xun1xkhjxmlvv';
+    player.play();
+  } else {
+    player.pause();
+    player.src = '';
+  }
+  const isPlaying = !player.paused;
+  document.getElementById('nav-btn').classList.toggle('playing', isPlaying);
+  document.getElementById('main-btn').classList.toggle('playing', isPlaying);
+  document.getElementById('nav-icon').textContent = isPlaying ? '⏸' : '▶';
+  document.getElementById('nav-text').textContent = isPlaying ? 'Pause' : 'Listen Live';
+  document.getElementById('main-icon').textContent = isPlaying ? '⏸' : '▶';
+  document.getElementById('main-text').textContent = isPlaying ? 'On Air' : 'Listen Live';
+  document.getElementById('np-wave').classList.toggle('on', isPlaying);
 }
+
+player.addEventListener('playing', () => {
+  document.getElementById('nav-btn').classList.add('playing');
+  document.getElementById('main-btn').classList.add('playing');
+  document.getElementById('nav-icon').textContent = '⏸';
+  document.getElementById('nav-text').textContent = 'Pause';
+  document.getElementById('main-icon').textContent = '⏸';
+  document.getElementById('main-text').textContent = 'On Air';
+  document.getElementById('np-wave').classList.add('on');
+});
+
+player.addEventListener('pause', () => {
+  document.getElementById('nav-btn').classList.remove('playing');
+  document.getElementById('main-btn').classList.remove('playing');
+  document.getElementById('nav-icon').textContent = '▶';
+  document.getElementById('nav-text').textContent = 'Listen Live';
+  document.getElementById('main-icon').textContent = '▶';
+  document.getElementById('main-text').textContent = 'Listen Live';
+  document.getElementById('np-wave').classList.remove('on');
+});
 
 function doShare(t) {
   const msgs = {
