@@ -217,6 +217,15 @@ input[type=range].vsl::-webkit-slider-thumb{
 .cbtn:active{background:var(--red);}
 
 .flags{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;color:var(--beige2);}
+.install-btn{
+  width:100%;background:var(--olive-dark);border:none;border-radius:8px;
+  color:white;font-family:'DM Sans',sans-serif;
+  font-size:14px;font-weight:600;
+  padding:13px;cursor:pointer;
+  display:none;align-items:center;justify-content:center;gap:8px;
+  transition:background 0.2s;
+}
+.install-btn:active{background:var(--olive);}
 .fmsg{font-size:11px;color:var(--olive);text-align:center;min-height:14px;}
 
 /* Bottom nav */
@@ -300,6 +309,10 @@ input[type=range].vsl::-webkit-slider-thumb{
       <div class="cd">Request to speak live with the host</div>
       <button class="cbtn" onclick="reqSpeak()">📞 Request to Speak</button>
     </div>
+
+    <button class="install-btn" id="install-btn" onclick="installApp()">
+      📲 Install Olive Land Radio
+    </button>
 
     <div class="flags">🇵🇸 Palestine · Jordan · Diaspora 🇯🇴</div>
 
@@ -391,6 +404,29 @@ function reqSpeak(){
   el.textContent='Request sent to host ✓';
   setTimeout(()=>el.textContent='',3000);
 }
+
+// PWA Install
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('install-btn');
+  btn.style.display = 'flex';
+});
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById('install-btn').style.display = 'none';
+    });
+  }
+}
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-btn').style.display = 'none';
+});
 
 // PWA
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
