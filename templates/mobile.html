@@ -701,9 +701,85 @@ function doShare(t){
 }
 
 function reqSpeak(){
-  const el=document.getElementById('fmsg');
-  el.textContent='Request sent to host ✓';
-  setTimeout(()=>el.textContent='',3000);
+  if(!currentUser){
+    openModal();
+    return;
+  }
+  showSpeakModal('confirm');
+}
+
+let activeSpeakRequest = null;
+
+function showSpeakModal(state, data){
+  let modal = document.getElementById('speak-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'speak-modal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = '<div class="modal" id="speak-card-content" style="max-width:340px;text-align:center;padding:24px 20px;"></div>';
+    document.body.appendChild(modal);
+  }
+  modal.classList.add('show');
+  const card = document.getElementById('speak-card-content');
+
+  if(state === 'confirm'){
+    card.innerHTML = `
+      <div style="font-size:50px;margin-bottom:12px;">🎙️</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--black);margin-bottom:6px;">Talk on Air</div>
+      <div style="font-size:0.85rem;color:#7A7060;line-height:1.6;margin-bottom:20px;">Send a request to speak live with the host. They'll review and accept if you're next.</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="closeSpeakModal()" style="flex:1;background:var(--beige);border:none;border-radius:6px;padding:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--black);">Cancel</button>
+        <button onclick="sendSpeakRequest()" style="flex:1;background:var(--olive);color:white;border:none;border-radius:6px;padding:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;">Send Request</button>
+      </div>
+    `;
+  } else if(state === 'pending'){
+    card.innerHTML = `
+      <div style="font-size:50px;margin-bottom:12px;animation:pulse-icon 1.5s ease-in-out infinite;">⏳</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--black);margin-bottom:6px;">Request Sent</div>
+      <div style="font-size:0.85rem;color:#7A7060;line-height:1.6;margin-bottom:20px;">The host will be notified. Please keep this app open until they accept.</div>
+      <button onclick="closeSpeakModal()" style="width:100%;background:var(--beige);border:none;border-radius:6px;padding:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--black);">Close</button>
+    `;
+  } else if(state === 'connected'){
+    if(!player.paused) player.pause();
+    card.innerHTML = `
+      <div style="font-size:50px;margin-bottom:12px;animation:pulse-icon 1.5s ease-in-out infinite;">🎙️</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--black);margin-bottom:6px;">You're On Air!</div>
+      <div style="font-size:0.85rem;color:#7A7060;line-height:1.6;margin-bottom:14px;">Allow microphone access when prompted.</div>
+      <iframe src="${data.room_url}" allow="microphone;autoplay" style="width:100%;height:280px;border:none;border-radius:10px;margin-bottom:14px;"></iframe>
+      <button onclick="endSpeakCall()" style="width:100%;background:var(--red);color:white;border:none;border-radius:6px;padding:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;">End Call</button>
+    `;
+  } else if(state === 'rejected'){
+    card.innerHTML = `
+      <div style="font-size:50px;margin-bottom:12px;">😔</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--black);margin-bottom:6px;">Request Declined</div>
+      <div style="font-size:0.85rem;color:#7A7060;line-height:1.6;margin-bottom:20px;">The host couldn't take your call right now. Try again later!</div>
+      <button onclick="closeSpeakModal()" style="width:100%;background:var(--olive);color:white;border:none;border-radius:6px;padding:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;">OK</button>
+    `;
+  } else if(state === 'ended'){
+    card.innerHTML = `
+      <div style="font-size:50px;margin-bottom:12px;">✓</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--black);margin-bottom:6px;">Call Ended</div>
+      <div style="font-size:0.85rem;color:#7A7060;line-height:1.6;margin-bottom:20px;">Thank you for joining the conversation!</div>
+      <button onclick="closeSpeakModal()" style="width:100%;background:var(--olive);color:white;border:none;border-radius:6px;padding:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;">Close</button>
+    `;
+  }
+}
+
+function closeSpeakModal(){
+  const modal = document.getElementById('speak-modal');
+  if(modal) modal.classList.remove('show');
+}
+
+function sendSpeakRequest(){
+  socket.emit('request_speak', {});
+}
+
+function endSpeakCall(){
+  if(activeSpeakRequest){
+    socket.emit('end_speak', {id: activeSpeakRequest});
+    activeSpeakRequest = null;
+  }
+  closeSpeakModal();
 }
 
 // PWA Install
@@ -829,6 +905,7 @@ async function submitReg(){
       closeModal();
       showWelcome('Welcome, '+data.user.name.split(' ')[0]+'! 🫒');
       if(typeof updateChatLockState === 'function') updateChatLockState();
+      if(typeof socket !== 'undefined') socket.emit('user_join');
     } else {
       err.textContent = data.error || 'Something went wrong';
     }
@@ -935,6 +1012,35 @@ socket.on('message_deleted', d=>{
 });
 
 socket.on('error', e=>{
+  showWelcome(e.msg || 'Error');
+});
+
+// ── SPEAK REQUEST EVENTS ──
+socket.on('connect', ()=>{
+  if(currentUser) socket.emit('user_join');
+});
+
+socket.on('speak_request_sent', d=>{
+  activeSpeakRequest = d.id;
+  showSpeakModal('pending');
+});
+
+socket.on('speak_accepted', d=>{
+  activeSpeakRequest = d.id;
+  showSpeakModal('connected', d);
+});
+
+socket.on('speak_rejected', d=>{
+  activeSpeakRequest = null;
+  showSpeakModal('rejected');
+});
+
+socket.on('speak_ended', d=>{
+  activeSpeakRequest = null;
+  showSpeakModal('ended');
+});
+
+socket.on('speak_error', e=>{
   showWelcome(e.msg || 'Error');
 });
 
