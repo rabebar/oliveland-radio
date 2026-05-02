@@ -258,6 +258,7 @@ function showToast(msg, isError){
 
 // Socket events
 socket.on('connect', ()=>{
+  socket.emit('admin_join');
   socket.emit('get_speak_requests');
 });
 

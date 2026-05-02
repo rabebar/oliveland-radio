@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime, timedelta
 import os
 import requests
@@ -184,6 +184,23 @@ def create_daily_room(room_name):
 
 
 # ── Speak Requests ──
+@socketio.on('admin_join')
+def handle_admin_join():
+    user = session.get('user')
+    if user and user.get('email') == ADMIN_EMAIL:
+        join_room('admins')
+        # Send current pending requests
+        pending = [r for r in speak_requests.values() if r['status'] == 'pending']
+        emit('speak_requests_list', pending)
+
+
+@socketio.on('user_join')
+def handle_user_join():
+    user = session.get('user')
+    if user:
+        join_room(f"user_{user['email']}")
+
+
 @socketio.on('request_speak')
 def handle_request_speak(data):
     global request_counter
@@ -207,7 +224,8 @@ def handle_request_speak(data):
         'created_at': datetime.utcnow().strftime('%H:%M')
     }
     emit('speak_request_sent', {'id': rid})
-    socketio.emit('new_speak_request', speak_requests[rid])
+    # Notify all admins in the 'admins' room
+    socketio.emit('new_speak_request', speak_requests[rid], to='admins')
 
 
 @socketio.on('get_speak_requests')
@@ -234,10 +252,12 @@ def handle_accept(data):
         return
     req['status'] = 'accepted'
     req['room_url'] = room_url
+    # Notify the specific user
     socketio.emit('speak_accepted', {
         'id': rid, 'email': req['email'], 'room_url': room_url
-    })
-    emit('speak_request_updated', req)
+    }, to=f"user_{req['email']}")
+    # Notify all admins
+    socketio.emit('speak_request_updated', req, to='admins')
 
 
 @socketio.on('reject_speak')
@@ -250,8 +270,8 @@ def handle_reject(data):
     if not req:
         return
     req['status'] = 'rejected'
-    socketio.emit('speak_rejected', {'id': rid, 'email': req['email']})
-    emit('speak_request_updated', req)
+    socketio.emit('speak_rejected', {'id': rid, 'email': req['email']}, to=f"user_{req['email']}")
+    socketio.emit('speak_request_updated', req, to='admins')
 
 
 @socketio.on('end_speak')
@@ -261,7 +281,7 @@ def handle_end(data):
     if not req:
         return
     req['status'] = 'ended'
-    socketio.emit('speak_ended', {'id': rid, 'email': req['email']})
+    socketio.emit('speak_ended', {'id': rid, 'email': req['email']}, to=f"user_{req['email']}")
 
 
 with app.app_context():
