@@ -246,6 +246,126 @@ input[type=range].vsl::-webkit-slider-thumb{
 .bnav-icon{font-size:20px;}
 .bnav-label{font-size:9px;color:var(--beige2);letter-spacing:0.5px;text-transform:uppercase;}
 .bnav-item.active .bnav-label{color:var(--olive);font-weight:600;}
+
+/* Profile chip in hero */
+.profile-chip{
+  position:absolute;top:14px;left:14px;z-index:8;
+  background:rgba(253,250,244,0.95);
+  border-radius:20px;padding:5px 10px 5px 5px;
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--olive-dark);
+  font-weight:600;cursor:pointer;
+  border:1px solid var(--beige);
+}
+.profile-avatar{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--olive);color:white;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;
+}
+
+/* Registration Modal */
+.modal-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(28,28,28,0.65);
+  backdrop-filter:blur(4px);
+  z-index:200;
+  display:none;
+  align-items:center;justify-content:center;
+  padding:20px;
+}
+.modal-overlay.show{display:flex;}
+.modal{
+  background:var(--cream);
+  border-radius:14px;
+  width:100%;max-width:340px;
+  overflow:hidden;
+  position:relative;
+  box-shadow:0 20px 60px rgba(0,0,0,0.4);
+  animation:slideUp 0.3s ease-out;
+}
+@keyframes slideUp{
+  from{transform:translateY(40px);opacity:0;}
+  to{transform:translateY(0);opacity:1;}
+}
+.modal-header{
+  background:linear-gradient(135deg,var(--olive),var(--olive-dark));
+  padding:20px 18px 16px;
+  text-align:center;
+  position:relative;
+}
+.modal-header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;
+  height:4px;
+  background:repeating-linear-gradient(
+    90deg,
+    var(--black) 0,var(--black) 6px,
+    var(--cream) 6px,var(--cream) 8px,
+    var(--red) 8px,var(--red) 14px,
+    var(--cream) 14px,var(--cream) 16px
+  );
+}
+.modal-icon{font-size:28px;margin-bottom:6px;}
+.modal-title{
+  font-family:'Playfair Display',serif;
+  font-size:1.1rem;font-weight:700;color:white;
+  margin-bottom:3px;
+}
+.modal-subtitle{font-size:0.7rem;color:rgba(255,255,255,0.7);}
+.modal-close{
+  position:absolute;top:10px;right:10px;
+  background:rgba(255,255,255,0.15);border:none;
+  width:26px;height:26px;border-radius:50%;
+  color:white;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-body{padding:18px;}
+.modal-field{margin-bottom:12px;}
+.modal-label{
+  display:block;font-size:10px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--olive-dark);
+  font-weight:600;margin-bottom:5px;
+}
+.modal-input{
+  width:100%;padding:10px 12px;
+  border:1px solid var(--beige2);
+  border-radius:6px;background:white;
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;color:var(--black);
+  outline:none;transition:border-color 0.2s;
+}
+.modal-input:focus{border-color:var(--olive);}
+.modal-submit{
+  width:100%;background:var(--olive);
+  border:none;border-radius:6px;
+  color:white;font-family:'DM Sans',sans-serif;
+  font-size:14px;font-weight:600;
+  padding:12px;cursor:pointer;
+  margin-top:6px;transition:background 0.2s;
+}
+.modal-submit:active{background:var(--olive-dark);}
+.modal-submit:disabled{background:var(--beige2);cursor:not-allowed;}
+.modal-error{
+  font-size:11px;color:var(--red);
+  margin-top:8px;text-align:center;min-height:14px;
+}
+.modal-skip{
+  font-size:10px;color:var(--beige2);
+  text-align:center;margin-top:10px;
+  text-decoration:underline;cursor:pointer;
+}
+
+/* Welcome chip animation */
+.welcome-chip{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);
+  background:var(--olive);color:white;
+  padding:10px 18px;border-radius:30px;
+  font-size:12px;font-weight:600;
+  z-index:300;
+  box-shadow:0 6px 20px rgba(74,92,40,0.4);
+  transition:transform 0.4s ease-out;
+}
+.welcome-chip.show{transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
@@ -265,6 +385,10 @@ input[type=range].vsl::-webkit-slider-thumb{
     <div class="hero-fade"></div>
     <div class="live-badge"><div class="ldot"></div>LIVE</div>
     <div class="lcount">&#128100; <span id="lc">1,247</span></div>
+    <div class="profile-chip" id="profile-chip" onclick="openProfile()" style="display:none;">
+      <div class="profile-avatar" id="profile-avatar">?</div>
+      <span id="profile-name">Guest</span>
+    </div>
     <div class="hero-logo">
       <div class="logo-main">OLIVE <span>LAND</span></div>
       <div class="logo-sub">R · A · D · I · O</div>
@@ -341,6 +465,38 @@ input[type=range].vsl::-webkit-slider-thumb{
 </div>
 
 <audio id="player" src="https://stream.zeno.fm/xun1xkhjxmlvv" preload="none"></audio>
+
+<!-- Welcome chip -->
+<div class="welcome-chip" id="welcome-chip"></div>
+
+<!-- Registration Modal -->
+<div class="modal-overlay" id="reg-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModal()">×</button>
+      <div class="modal-icon">🫒</div>
+      <div class="modal-title">Welcome to Olive Land</div>
+      <div class="modal-subtitle">Join our community of listeners</div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field">
+        <label class="modal-label">Your Name</label>
+        <input class="modal-input" id="reg-name" type="text" placeholder="e.g. Ahmad" autocomplete="name">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Email</label>
+        <input class="modal-input" id="reg-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Country</label>
+        <input class="modal-input" id="reg-country" type="text" placeholder="e.g. Palestine, USA, Jordan">
+      </div>
+      <button class="modal-submit" id="reg-submit" onclick="submitReg()">Join Now</button>
+      <div class="modal-error" id="reg-error"></div>
+      <div class="modal-skip" onclick="skipReg()">Skip for now</div>
+    </div>
+  </div>
+</div>
 
 <script>
 // Fringe
@@ -430,6 +586,113 @@ window.addEventListener('appinstalled', () => {
 
 // PWA
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+
+// ── USER SYSTEM ──
+let currentUser = null;
+
+async function loadUser(){
+  try{
+    const r = await fetch('/me');
+    const u = await r.json();
+    if(u && u.name){
+      currentUser = u;
+      showProfile(u);
+    } else {
+      // First visit — show modal after 2 seconds
+      setTimeout(()=>{
+        if(!localStorage.getItem('reg_skipped') && !currentUser){
+          openModal();
+        }
+      }, 2000);
+    }
+  } catch(e){}
+}
+
+function showProfile(u){
+  const chip = document.getElementById('profile-chip');
+  document.getElementById('profile-name').textContent = u.name.split(' ')[0];
+  document.getElementById('profile-avatar').textContent = u.name[0].toUpperCase();
+  chip.style.display = 'flex';
+}
+
+function openModal(){
+  document.getElementById('reg-modal').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('reg-modal').classList.remove('show');
+}
+
+function skipReg(){
+  localStorage.setItem('reg_skipped','1');
+  closeModal();
+}
+
+function openProfile(){
+  if(currentUser){
+    if(confirm('Sign out, '+currentUser.name+'?')){
+      fetch('/logout',{method:'POST'}).then(()=>{
+        currentUser = null;
+        document.getElementById('profile-chip').style.display = 'none';
+        localStorage.removeItem('reg_skipped');
+      });
+    }
+  } else {
+    openModal();
+  }
+}
+
+async function submitReg(){
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const country = document.getElementById('reg-country').value.trim();
+  const err = document.getElementById('reg-error');
+  const btn = document.getElementById('reg-submit');
+
+  if(!name || !email){
+    err.textContent = 'Name and email are required';
+    return;
+  }
+  if(!email.includes('@')){
+    err.textContent = 'Please enter a valid email';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Joining...';
+  err.textContent = '';
+
+  try{
+    const r = await fetch('/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name,email,country})
+    });
+    const data = await r.json();
+    if(data.success){
+      currentUser = data.user;
+      showProfile(data.user);
+      closeModal();
+      showWelcome('Welcome, '+data.user.name.split(' ')[0]+'! 🫒');
+    } else {
+      err.textContent = data.error || 'Something went wrong';
+    }
+  } catch(e){
+    err.textContent = 'Connection error. Try again.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Join Now';
+  }
+}
+
+function showWelcome(msg){
+  const chip = document.getElementById('welcome-chip');
+  chip.textContent = msg;
+  chip.classList.add('show');
+  setTimeout(()=>chip.classList.remove('show'), 3500);
+}
+
+loadUser();
 </script>
 </body>
 </html>
