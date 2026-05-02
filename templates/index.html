@@ -346,7 +346,41 @@ footer{
   <button class="nav-btn" id="nav-btn" onclick="togglePlay()">
     <span id="nav-icon">▶</span> <span id="nav-text">Listen Live</span>
   </button>
+  <button id="signin-btn" onclick="openSignIn()" style="background:transparent;border:1.5px solid #C8BCA8;color:#1C1C1C;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:9px 16px;border-radius:5px;margin-left:8px;cursor:pointer;">Sign In</button>
+  <div id="user-chip" style="display:none;margin-left:10px;background:#F5F0E6;border:1px solid #E2D9C8;border-radius:20px;padding:5px 12px 5px 5px;align-items:center;gap:8px;font-size:12px;color:#2E3A18;font-weight:600;cursor:pointer;" onclick="userClick()">
+    <span id="user-avatar" style="width:24px;height:24px;border-radius:50%;background:#4A5C28;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">?</span>
+    <span id="user-name">Guest</span>
+    <span id="admin-link" style="display:none;background:#C0201A;color:white;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;">ADMIN</span>
+  </div>
 </nav>
+
+<!-- Sign In Modal (Desktop) -->
+<div id="signin-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(28,28,28,0.65);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#F5F0E6;border-radius:14px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="background:linear-gradient(135deg,#4A5C28,#2E3A18);padding:22px 18px 18px;text-align:center;position:relative;">
+      <button onclick="closeSignIn()" style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.15);border:none;width:28px;height:28px;border-radius:50%;color:white;font-size:14px;cursor:pointer;">×</button>
+      <div style="font-size:32px;margin-bottom:6px;">🫒</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:white;">Welcome to Olive Land</div>
+      <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin-top:3px;">Join our community</div>
+    </div>
+    <div style="padding:20px;">
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#2E3A18;font-weight:600;margin-bottom:6px;">Your Name</label>
+        <input id="si-name" type="text" placeholder="e.g. Ahmad" style="width:100%;padding:11px 14px;border:1px solid #C8BCA8;border-radius:6px;background:white;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#2E3A18;font-weight:600;margin-bottom:6px;">Email</label>
+        <input id="si-email" type="email" placeholder="you@example.com" style="width:100%;padding:11px 14px;border:1px solid #C8BCA8;border-radius:6px;background:white;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#2E3A18;font-weight:600;margin-bottom:6px;">Country</label>
+        <input id="si-country" type="text" placeholder="e.g. Palestine, USA" style="width:100%;padding:11px 14px;border:1px solid #C8BCA8;border-radius:6px;background:white;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+      </div>
+      <button id="si-submit" onclick="submitSignIn()" style="width:100%;background:#4A5C28;border:none;border-radius:6px;color:white;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;padding:13px;cursor:pointer;">Sign In</button>
+      <div id="si-error" style="font-size:12px;color:#C0201A;text-align:center;min-height:16px;margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
 
 <!-- NOW PLAYING BAR -->
 <div class="np-bar">
@@ -580,6 +614,102 @@ function reqSpeak() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js');
   }
+</script>
+
+<script>
+let currentUser = null;
+
+async function loadUser(){
+  try{
+    const r = await fetch('/me');
+    const u = await r.json();
+    if(u && u.name){
+      currentUser = u;
+      showUser(u);
+    }
+  } catch(e){}
+}
+
+function showUser(u){
+  document.getElementById('signin-btn').style.display = 'none';
+  const chip = document.getElementById('user-chip');
+  chip.style.display = 'flex';
+  document.getElementById('user-name').textContent = u.name.split(' ')[0];
+  document.getElementById('user-avatar').textContent = u.name[0].toUpperCase();
+  if(u.is_admin) document.getElementById('admin-link').style.display = 'inline';
+}
+
+function openSignIn(){
+  document.getElementById('signin-modal').style.display = 'flex';
+}
+
+function closeSignIn(){
+  document.getElementById('signin-modal').style.display = 'none';
+}
+
+function userClick(){
+  if(currentUser && currentUser.is_admin){
+    if(confirm('Open Admin Panel?')){
+      window.location.href = '/admin';
+    }
+  } else {
+    if(confirm('Sign out?')){
+      fetch('/logout',{method:'POST'}).then(()=>{
+        location.reload();
+      });
+    }
+  }
+}
+
+async function submitSignIn(){
+  const name = document.getElementById('si-name').value.trim();
+  const email = document.getElementById('si-email').value.trim();
+  const country = document.getElementById('si-country').value.trim();
+  const err = document.getElementById('si-error');
+  const btn = document.getElementById('si-submit');
+
+  if(!name || !email){
+    err.textContent = 'Name and email required';
+    return;
+  }
+  if(!email.includes('@')){
+    err.textContent = 'Invalid email';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  try{
+    const r = await fetch('/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name,email,country})
+    });
+    const data = await r.json();
+    if(data.success){
+      currentUser = data.user;
+      closeSignIn();
+      showUser(data.user);
+      if(data.user.is_admin){
+        setTimeout(()=>{
+          if(confirm('Welcome admin! Open admin panel?')){
+            window.location.href = '/admin';
+          }
+        }, 300);
+      }
+    } else {
+      err.textContent = data.error || 'Error';
+    }
+  } catch(e){
+    err.textContent = 'Connection error';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+}
+
+loadUser();
 </script>
 </body>
 </html>
