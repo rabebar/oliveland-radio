@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, emit
 from datetime import datetime, timedelta
@@ -25,12 +25,14 @@ speak_requests = {}
 request_counter = 0
 
 
+# ── Models ──
 class Listener(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     country = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -41,6 +43,23 @@ class ChatMessage(db.Model):
     deleted = db.Column(db.Boolean, default=False)
 
 
+# ── PWA Static Files ──
+@app.route('/sw.js')
+def service_worker():
+    return send_from_directory('.', 'sw.js')
+
+
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('.', 'manifest.json')
+
+
+@app.route('/icon-<int:size>.png')
+def icon(size):
+    return send_from_directory('.', f'icon-{size}.png')
+
+
+# ── Pages ──
 @app.route('/')
 def home():
     user_agent = request.headers.get('User-Agent', '').lower()
@@ -49,23 +68,11 @@ def home():
         return redirect(url_for('mobile'))
     return render_template('index.html', user=session.get('user'))
 
+
 @app.route('/mobile')
 def mobile():
     return render_template('mobile.html', user=session.get('user'))
-@app.route('/sw.js')
-def service_worker():
-    from flask import send_from_directory
-    return send_from_directory('.', 'sw.js')
 
-@app.route('/manifest.json')
-def manifest():
-    from flask import send_from_directory
-    return send_from_directory('.', 'manifest.json')
-
-@app.route('/icon-<size>.png')
-def icon(size):
-    from flask import send_from_directory
-    return send_from_directory('.', f'icon-{size}.png')
 
 @app.route('/admin')
 def admin():
@@ -74,6 +81,8 @@ def admin():
         return "Access denied. Sign in as admin first.", 403
     return render_template('admin.html', user=user)
 
+
+# ── Auth ──
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json
@@ -92,10 +101,12 @@ def register():
     session['user'] = {'id': listener.id, 'name': listener.name, 'email': listener.email}
     return jsonify({'success': True, 'user': session['user']})
 
+
 @app.route('/logout', methods=['POST'])
 def logout():
     session.pop('user', None)
     return jsonify({'success': True})
+
 
 @app.route('/me')
 def me():
@@ -105,6 +116,7 @@ def me():
     return jsonify(user)
 
 
+# ── Chat ──
 @app.route('/chat/messages')
 def chat_messages():
     msgs = ChatMessage.query.filter_by(deleted=False).order_by(ChatMessage.created_at.desc()).limit(50).all()
@@ -113,6 +125,7 @@ def chat_messages():
         'id': m.id, 'name': m.name, 'message': m.message,
         'time': m.created_at.strftime('%H:%M')
     } for m in msgs])
+
 
 @socketio.on('send_message')
 def handle_message(data):
@@ -131,6 +144,7 @@ def handle_message(data):
         'time': msg.created_at.strftime('%H:%M')
     }, broadcast=True)
 
+
 @socketio.on('delete_message')
 def handle_delete(data):
     user = session.get('user')
@@ -143,6 +157,7 @@ def handle_delete(data):
         emit('message_deleted', {'id': msg.id}, broadcast=True)
 
 
+# ── Daily.co room creation ──
 def create_daily_room(room_name):
     if not DAILY_API_KEY:
         return None
@@ -168,6 +183,7 @@ def create_daily_room(room_name):
     return None
 
 
+# ── Speak Requests ──
 @socketio.on('request_speak')
 def handle_request_speak(data):
     global request_counter
@@ -250,6 +266,7 @@ def handle_end(data):
 
 with app.app_context():
     db.create_all()
+
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port=5000)
