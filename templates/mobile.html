@@ -766,6 +766,7 @@ function openProfile(){
         currentUser = null;
         document.getElementById('profile-chip').style.display = 'none';
         localStorage.removeItem('reg_skipped');
+        if(typeof updateChatLockState === 'function') updateChatLockState();
       });
     }
   } else {
@@ -805,6 +806,7 @@ async function submitReg(){
       showProfile(data.user);
       closeModal();
       showWelcome('Welcome, '+data.user.name.split(' ')[0]+'! 🫒');
+      if(typeof updateChatLockState === 'function') updateChatLockState();
     } else {
       err.textContent = data.error || 'Something went wrong';
     }
