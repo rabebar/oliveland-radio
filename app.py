@@ -52,6 +52,20 @@ def home():
 @app.route('/mobile')
 def mobile():
     return render_template('mobile.html', user=session.get('user'))
+@app.route('/sw.js')
+def service_worker():
+    from flask import send_from_directory
+    return send_from_directory('.', 'sw.js')
+
+@app.route('/manifest.json')
+def manifest():
+    from flask import send_from_directory
+    return send_from_directory('.', 'manifest.json')
+
+@app.route('/icon-<size>.png')
+def icon(size):
+    from flask import send_from_directory
+    return send_from_directory('.', f'icon-{size}.png')
 
 @app.route('/admin')
 def admin():

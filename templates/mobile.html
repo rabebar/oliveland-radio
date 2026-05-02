@@ -653,14 +653,28 @@ vol.addEventListener('input',()=>player.volume=vol.value/100);
 
 let playing=false;
 function togglePlay(){
+  console.log('togglePlay called, paused:', player.paused);
   if(player.paused){
     player.src='https://stream.zeno.fm/xun1xkhjxmlvv';
-    player.play();
+    player.load();
+    const playPromise = player.play();
+    if(playPromise !== undefined){
+      playPromise.then(()=>{
+        console.log('Playing started');
+      }).catch(err=>{
+        console.error('Play failed:', err);
+        showWelcome('Tap again to play', true);
+      });
+    }
   } else {
     player.pause();
     player.src='';
   }
 }
+
+player.addEventListener('error', (e)=>{
+  console.error('Audio error:', e, player.error);
+});
 
 player.addEventListener('playing',()=>{
   playing=true;
@@ -716,7 +730,15 @@ window.addEventListener('appinstalled', () => {
 });
 
 // PWA
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+// PWA Service Worker - disabled until file routes are fixed
+// if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+
+// Unregister old SW that might be cached
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
+  });
+}
 
 // ── USER SYSTEM ──
 let currentUser = null;
