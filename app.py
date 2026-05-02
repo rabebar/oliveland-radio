@@ -10,7 +10,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:/
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # Admin email — only this user can delete chat messages
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'rabe.bar.a74@gmail.com')
