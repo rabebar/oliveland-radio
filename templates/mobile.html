@@ -129,7 +129,16 @@ html,body{
   border-left:3px solid var(--red);
   border-radius:8px;
   padding:10px 14px;
+  display:flex;gap:10px;align-items:center;
 }
+.np-cover{
+  width:48px;height:48px;border-radius:6px;
+  background:var(--beige);
+  background-size:cover;background-position:center;
+  flex-shrink:0;display:none;
+}
+.np-cover.show{display:block;}
+.np-info{flex:1;min-width:0;}
 .np-tag{font-size:8px;letter-spacing:2px;color:var(--red);text-transform:uppercase;font-weight:700;margin-bottom:4px;}
 .np-title{font-size:0.9rem;font-weight:600;color:var(--black);}
 .np-show{font-size:0.72rem;color:var(--beige2);}
@@ -508,10 +517,13 @@ input[type=range].vsl::-webkit-slider-thumb{
   <div class="content">
 
     <div class="np">
-      <div class="np-tag">Now Playing</div>
-      <div class="np-title">Olive Land Radio — Live</div>
-      <div class="np-show">Live Broadcast</div>
-      <div class="np-prog"><div class="np-fill"></div></div>
+      <div class="np-cover" id="np-cover"></div>
+      <div class="np-info">
+        <div class="np-tag">Now Playing</div>
+        <div class="np-title" id="np-title">Olive Land Radio — Live</div>
+        <div class="np-show" id="np-show">Live Broadcast</div>
+        <div class="np-prog"><div class="np-fill"></div></div>
+      </div>
     </div>
 
     <div class="play-section">
@@ -1053,6 +1065,31 @@ window.loadUser = async function(){
 
 loadChatHistory();
 updateChatLockState();
+
+// ── NOW PLAYING ──
+async function loadNowPlaying(){
+  try{
+    const r = await fetch('/now-playing');
+    const np = await r.json();
+    applyNowPlaying(np);
+  } catch(e){}
+}
+
+function applyNowPlaying(np){
+  if(!np) return;
+  document.getElementById('np-title').textContent = np.title || 'Olive Land Radio — Live';
+  document.getElementById('np-show').textContent = np.host || 'Live Broadcast';
+  const cover = document.getElementById('np-cover');
+  if(np.cover_url){
+    cover.style.backgroundImage = `url("${np.cover_url.replace(/"/g,'\\"')}")`;
+    cover.classList.add('show');
+  } else {
+    cover.classList.remove('show');
+  }
+}
+
+socket.on('now_playing_updated', applyNowPlaying);
+loadNowPlaying();
 </script>
 </body>
 </html>

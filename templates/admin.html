@@ -121,6 +121,46 @@ iframe.daily-frame{
   width:100%;height:480px;border:none;
   border-radius:10px;margin-top:14px;
 }
+
+.np-form{display:flex;flex-direction:column;gap:12px;}
+.np-field label{
+  display:block;font-size:11px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--olive-dark);
+  font-weight:600;margin-bottom:4px;
+}
+.np-field input{
+  width:100%;padding:10px 12px;
+  border:1px solid var(--beige2);
+  border-radius:6px;background:var(--cream);
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;color:var(--black);
+  outline:none;transition:border-color 0.2s;
+}
+.np-field input:focus{border-color:var(--olive);}
+.np-preview{
+  background:var(--cream);
+  border:1px dashed var(--beige2);
+  border-radius:8px;padding:12px;
+  display:flex;gap:12px;align-items:center;
+  margin-top:6px;
+}
+.np-preview-img{
+  width:60px;height:60px;border-radius:6px;
+  background:var(--beige);
+  background-size:cover;background-position:center;
+  flex-shrink:0;
+}
+.np-preview-info{flex:1;min-width:0;}
+.np-preview-title{font-size:0.95rem;font-weight:600;color:var(--black);}
+.np-preview-host{font-size:0.78rem;color:var(--olive);}
+.btn-save{
+  background:var(--olive);color:white;
+  padding:10px 20px;border-radius:6px;
+  border:none;font-family:'DM Sans',sans-serif;
+  font-size:13px;font-weight:600;cursor:pointer;
+  align-self:flex-start;
+}
+.btn-save:active{background:var(--olive-dark);}
 </style>
 </head>
 <body>
@@ -138,6 +178,33 @@ iframe.daily-frame{
 <div class="kstripe"></div>
 
 <div class="container">
+
+  <!-- Now Playing Control -->
+  <div class="section">
+    <div class="section-title">📻 Now Playing</div>
+    <div class="np-form">
+      <div class="np-field">
+        <label>Show Title</label>
+        <input type="text" id="np-title" placeholder="e.g. Morning Show with Ahmad" maxlength="120">
+      </div>
+      <div class="np-field">
+        <label>Host / Program</label>
+        <input type="text" id="np-host" placeholder="e.g. Ahmad Khalil" maxlength="80">
+      </div>
+      <div class="np-field">
+        <label>Cover Image URL (optional)</label>
+        <input type="text" id="np-cover" placeholder="https://..." maxlength="500">
+      </div>
+      <div class="np-preview" id="np-preview">
+        <div class="np-preview-img" id="np-preview-img"></div>
+        <div class="np-preview-info">
+          <div class="np-preview-title" id="np-preview-title">—</div>
+          <div class="np-preview-host" id="np-preview-host">—</div>
+        </div>
+      </div>
+      <button class="btn-save" onclick="saveNowPlaying()">💾 Update Live</button>
+    </div>
+  </div>
 
   <!-- Active Call -->
   <div class="section" id="active-call-section" style="display:none;">
@@ -260,7 +327,46 @@ function showToast(msg, isError){
 socket.on('connect', ()=>{
   socket.emit('admin_join');
   socket.emit('get_speak_requests');
+  loadNowPlaying();
 });
+
+// ── Now Playing ──
+async function loadNowPlaying(){
+  try{
+    const r = await fetch('/now-playing');
+    const np = await r.json();
+    document.getElementById('np-title').value = np.title || '';
+    document.getElementById('np-host').value = np.host || '';
+    document.getElementById('np-cover').value = np.cover_url || '';
+    updateNpPreview();
+  } catch(e){}
+}
+
+function updateNpPreview(){
+  const title = document.getElementById('np-title').value.trim() || '—';
+  const host = document.getElementById('np-host').value.trim() || '—';
+  const cover = document.getElementById('np-cover').value.trim();
+  document.getElementById('np-preview-title').textContent = title;
+  document.getElementById('np-preview-host').textContent = host;
+  const img = document.getElementById('np-preview-img');
+  if(cover){
+    img.style.backgroundImage = `url("${cover.replace(/"/g,'\\"')}")`;
+  } else {
+    img.style.backgroundImage = '';
+  }
+}
+
+['np-title','np-host','np-cover'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updateNpPreview);
+});
+
+function saveNowPlaying(){
+  const title = document.getElementById('np-title').value.trim();
+  const host = document.getElementById('np-host').value.trim();
+  const cover_url = document.getElementById('np-cover').value.trim();
+  socket.emit('update_now_playing', {title, host, cover_url});
+  showToast('Now Playing updated ✓');
+}
 
 socket.on('speak_requests_list', list=>{
   list.forEach(renderRequest);

@@ -386,8 +386,8 @@ footer{
 <div class="np-bar">
   <div class="np-tag">Now Playing</div>
   <div class="np-info">
-    <div class="np-title">Watan — Mahmoud Darwish</div>
-    <div class="np-show">The Big Night Show</div>
+    <div class="np-title" id="np-title">Olive Land Radio — Live</div>
+    <div class="np-show" id="np-show">Live Broadcast</div>
   </div>
   <div class="wave-wrap" id="np-wave">
     <div class="wb"></div><div class="wb"></div><div class="wb"></div>
@@ -710,6 +710,19 @@ async function submitSignIn(){
 }
 
 loadUser();
+
+// ── Now Playing ──
+async function loadNowPlaying(){
+  try{
+    const r = await fetch('/now-playing');
+    const np = await r.json();
+    if(np.title) document.getElementById('np-title').textContent = np.title;
+    if(np.host) document.getElementById('np-show').textContent = np.host;
+  } catch(e){}
+}
+loadNowPlaying();
+// Refresh every 30 seconds (no live socket on desktop landing)
+setInterval(loadNowPlaying, 30000);
 </script>
 </body>
 </html>

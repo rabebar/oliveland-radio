@@ -24,6 +24,14 @@ DAILY_API_KEY = os.environ.get('DAILY_API_KEY', '')
 speak_requests = {}
 request_counter = 0
 
+# Current broadcast info (in-memory)
+now_playing = {
+    'title': 'Olive Land Radio — Live',
+    'host': 'Live Broadcast',
+    'cover_url': '',
+    'updated_at': datetime.utcnow().strftime('%H:%M')
+}
+
 
 # ── Models ──
 class Listener(db.Model):
@@ -181,6 +189,30 @@ def create_daily_room(room_name):
     except Exception as e:
         print('Daily.co exception:', e)
     return None
+
+
+# ── Now Playing ──
+@app.route('/now-playing')
+def get_now_playing():
+    return jsonify(now_playing)
+
+
+@socketio.on('update_now_playing')
+def handle_update_now_playing(data):
+    user = session.get('user')
+    if not user or user.get('email') != ADMIN_EMAIL:
+        return
+    title = (data.get('title') or '').strip()[:120]
+    host = (data.get('host') or '').strip()[:80]
+    cover_url = (data.get('cover_url') or '').strip()[:500]
+    if title:
+        now_playing['title'] = title
+    if host:
+        now_playing['host'] = host
+    now_playing['cover_url'] = cover_url
+    now_playing['updated_at'] = datetime.utcnow().strftime('%H:%M')
+    # Broadcast to everyone
+    socketio.emit('now_playing_updated', now_playing)
 
 
 # ── Speak Requests ──
